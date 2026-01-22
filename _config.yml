@@ -1,0 +1,27 @@
+# GitHub Pages Jekyll Configuration
+theme: null
+plugins: []
+markdown: kramdown
+
+# Site settings
+title: "KITA Agent PoC"
+description: "한국무역협회 무역 데이터 분석 플랫폼"
+url: "https://haje-kim.github.io/KITA-Agent-PoC"
+
+# Build settings
+include:
+  - .html
+
+exclude:
+  - .git
+  - .gitignore
+  - node_modules
+  - .claude
+  - dataset
+
+keep_files:
+  - ai_agent_interface_scenario1.html
+  - ai_agent_interface_scenario2.html
+  - market_analysis_report.html
+  - index.html
+  - landing.html
