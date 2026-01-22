@@ -1,0 +1,525 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Agent 인터페이스 PoC - 레포트 발송</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 900px;
+            height: 90vh;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            text-align: center;
+            flex-shrink: 0;
+        }
+
+        .header h1 {
+            font-size: 24px;
+            margin-bottom: 5px;
+        }
+
+        .header p {
+            font-size: 13px;
+            opacity: 0.9;
+        }
+
+        .chat-area {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            background: #f8f9fa;
+        }
+
+        .message-group {
+            margin-bottom: 30px;
+            display: flex;
+            gap: 10px;
+            align-items: flex-end;
+        }
+
+        .message-group.user-group {
+            flex-direction: row;
+        }
+
+        .message-group.ai-group {
+            flex-direction: row-reverse;
+        }
+
+        .avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            flex-shrink: 0;
+            font-weight: 600;
+        }
+
+        .avatar.user {
+            background: #667eea;
+            color: white;
+        }
+
+        .avatar.ai {
+            background: #f0f0f0;
+            color: #333;
+        }
+
+        .message {
+            margin-bottom: 12px;
+            animation: slideIn 0.3s ease-out;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .user-message {
+            display: flex;
+            justify-content: flex-start;
+        }
+
+        .user-message .content {
+            background: #667eea;
+            color: white;
+            padding: 12px 16px;
+            border-radius: 12px;
+            max-width: 70%;
+            word-wrap: break-word;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+
+        .ai-message {
+            display: flex;
+            justify-content: flex-end;
+        }
+
+        .ai-message .content {
+            background: white;
+            color: #333;
+            padding: 16px;
+            border-radius: 12px;
+            max-width: 85%;
+            border-right: 4px solid #667eea;
+            font-size: 14px;
+            line-height: 1.6;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+        }
+
+        .section-title {
+            font-weight: 600;
+            color: #667eea;
+            margin: 16px 0 12px 0;
+            font-size: 15px;
+        }
+
+        .list-item {
+            margin: 10px 0;
+            padding-left: 25px;
+            position: relative;
+            font-size: 14px;
+            line-height: 1.6;
+            color: #333;
+        }
+
+        .list-item::before {
+            content: "•";
+            position: absolute;
+            left: 0;
+            color: #667eea;
+            font-weight: bold;
+        }
+
+        .checklist-section {
+            background: #f0f4ff;
+            padding: 16px;
+            border-radius: 8px;
+            margin: 12px 0;
+            border-left: 3px solid #667eea;
+        }
+
+        .checklist-title {
+            font-weight: 600;
+            color: #667eea;
+            margin-bottom: 12px;
+            font-size: 14px;
+        }
+
+        .checklist-item {
+            display: flex;
+            align-items: flex-start;
+            margin-bottom: 10px;
+            font-size: 14px;
+            line-height: 1.6;
+        }
+
+        .checklist-item input[type="checkbox"] {
+            margin-right: 10px;
+            margin-top: 2px;
+            cursor: pointer;
+            accent-color: #667eea;
+        }
+
+        .checklist-item label {
+            cursor: pointer;
+            flex: 1;
+        }
+
+        .status-box {
+            background: #f0f4ff;
+            border-left: 3px solid #667eea;
+            padding: 12px;
+            margin: 12px 0;
+            border-radius: 4px;
+            font-size: 14px;
+            line-height: 1.6;
+        }
+
+        .status-box.success {
+            background: #e8f5e9;
+            border-left-color: #4caf50;
+        }
+
+        .status-box.loading {
+            background: #fff3cd;
+            border-left-color: #ff9800;
+        }
+
+        .highlight {
+            background: #fff9e6;
+            padding: 2px 4px;
+            border-radius: 3px;
+            color: #d68910;
+            font-weight: 500;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 10px;
+            margin: 16px 0;
+            flex-wrap: wrap;
+        }
+
+        .cta-button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 10px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 600;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .cta-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+
+        .cta-button.secondary {
+            background: #e8eaf6;
+            color: #667eea;
+        }
+
+        .cta-button.secondary:hover {
+            background: #dde1f0;
+        }
+
+        .input-area {
+            border-top: 1px solid #e0e0e0;
+            padding: 16px;
+            background: white;
+            display: flex;
+            gap: 10px;
+            flex-shrink: 0;
+        }
+
+        .input-area input {
+            flex: 1;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            padding: 12px;
+            font-size: 14px;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        .input-area input:focus {
+            border-color: #667eea;
+        }
+
+        .input-area button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 14px;
+            transition: transform 0.2s;
+        }
+
+        .input-area button:hover {
+            transform: scale(1.05);
+        }
+
+        .process-indicator {
+            display: flex;
+            gap: 8px;
+            margin: 12px 0;
+            font-size: 13px;
+        }
+
+        .process-step {
+            display: inline-block;
+            background: #e8eaf6;
+            color: #667eea;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-weight: 500;
+        }
+
+        .process-step.active {
+            background: #667eea;
+            color: white;
+        }
+
+        /* 스크롤바 스타일 */
+        .chat-area::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .chat-area::-webkit-scrollbar-track {
+            background: #f1f1f1;
+        }
+
+        .chat-area::-webkit-scrollbar-thumb {
+            background: #bbb;
+            border-radius: 4px;
+        }
+
+        .chat-area::-webkit-scrollbar-thumb:hover {
+            background: #888;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🚀 AI Agent - 레포트 생성 및 발송</h1>
+            <p>(주)뷰티글로벌 - 미국 시장 분석 레포트 요청</p>
+        </div>
+
+        <div class="chat-area" id="chatArea">
+            <!-- 메시지 1 - 레포트 제안 -->
+            <div class="message-group ai-group">
+                <div class="ai-message">
+                    <div class="content">
+                        <div>안녕하세요. 지난 대화에서 미국 시장 내 K-뷰티 수출 확대에 대해 관심을 보이셨던 것이 기억납니다.</div>
+                        <div style="margin-top: 12px;">관련하여, 최신 무역통계와 현지 규제 정보가 포함된 <span class="highlight">[미국 뷰티 시장 유망 품목 분석 레포트]</span>를 생성하여 메일로 보내드릴까요?</div>
+
+                        <div class="button-group" style="margin-top: 16px;">
+                            <button class="cta-button">레포트 신청</button>
+                            <button class="cta-button secondary">나중에</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="avatar ai">🤖</div>
+            </div>
+
+            <!-- 메시지 2 - 사용자 동의 -->
+            <div class="message-group user-group">
+                <div class="avatar user">U</div>
+                <div class="user-message">
+                    <div class="content">오 좋네요. 바로 부탁해요.</div>
+                </div>
+            </div>
+
+            <!-- 메시지 3 - 사전 점검 -->
+            <div class="message-group ai-group">
+                <div class="ai-message">
+                    <div class="content">
+                        <div>감사합니다. 정확한 레포트 작성을 위해, 아래 항목들을 먼저 확인해주실 수 있나요?</div>
+
+                        <div class="checklist-section" style="margin-top: 16px;">
+                            <div class="checklist-title">✅ 레포트 생성 사전 점검 항목</div>
+
+                            <div class="checklist-item">
+                                <input type="checkbox" id="check1" checked>
+                                <label for="check1">
+                                    <strong>(통계 확인)</strong> 2025년 관세청 對미국 수출 데이터 반영 여부
+                                </label>
+                            </div>
+
+                            <div class="checklist-item">
+                                <input type="checkbox" id="check2" checked>
+                                <label for="check2">
+                                    <strong>(규제 점검)</strong> 미국 FDA 화장품 규제 현대화법(MoCRA) 최신 변경 사항 반영 여부
+                                </label>
+                            </div>
+
+                            <div class="checklist-item">
+                                <input type="checkbox" id="check3" checked>
+                                <label for="check3">
+                                    <strong>(트렌드 분석)</strong> 현지 SNS 소셜 리스닝 데이터 및 주요 유통망 입점 현황 포함 여부
+                                </label>
+                            </div>
+                        </div>
+
+                        <div style="margin-top: 12px; font-size: 14px; line-height: 1.6;">
+                            <div>위 내용이 모두 반영되어야 더욱 정확한 분석이 가능합니다. 확인해주셨나요?</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="avatar ai">🤖</div>
+            </div>
+
+            <!-- 메시지 4 - 사용자 확인 -->
+            <div class="message-group user-group">
+                <div class="avatar user">U</div>
+                <div class="user-message">
+                    <div class="content">1. 2025년 통계 포함 2. MoCRA 최신 사항 반영 3. 현지 SNS 데이터와 주요 유통 채널 정리</div>
+                </div>
+            </div>
+
+            <!-- 메시지 5 - 분석 진행 및 완료 -->
+            <div class="message-group ai-group">
+                <div class="ai-message">
+                    <div class="content">
+                        <div>알겠습니다. 말씀주신 내용을 바탕으로 분석을 진행 중입니다.</div>
+
+                        <div class="process-indicator" style="margin-top: 16px;">
+                            <div class="process-step active">📊 데이터 수집</div>
+                            <div class="process-step active">📈 분석</div>
+                            <div class="process-step active">📄 레포트 생성</div>
+                        </div>
+
+                        <div class="status-box loading" style="margin-top: 12px;">
+                            ⏳ 약 5분 내 분석을 완료하여, abc@kita.net 메일로 발송해드리겠습니다.
+                        </div>
+                    </div>
+                </div>
+                <div class="avatar ai">🤖</div>
+            </div>
+
+            <!-- 메시지 6 - 발송 완료 알림 -->
+            <div class="message-group ai-group">
+                <div class="ai-message">
+                    <div class="content">
+                        <div class="status-box success">
+                            ✅ <strong>요청하신 레포트가 메일로 발송되었습니다!</strong>
+                        </div>
+
+                        <div style="margin-top: 16px;">이번 레포트 내용 중 다음 주제에 대해 궁금하신 점이 있다면 언제든 물어봐주세요:</div>
+
+                        <div class="list-item" style="margin-top: 10px;">
+                            현지 수입 규제 대응 방안
+                        </div>
+                        <div class="list-item">
+                            특정 고객층 타겟팅 전략
+                        </div>
+                        <div class="list-item">
+                            미국 주요 유통망 입점 전략
+                        </div>
+
+                        <div style="margin-top: 16px; padding: 12px; background: #f0f4ff; border-radius: 8px; border-left: 3px solid #667eea; font-size: 14px;">
+                            또한, 관련 <strong>TradePro 상담 위원 예약</strong>도 바로 도와드릴 수 있습니다!
+                        </div>
+
+                        <div class="button-group" style="margin-top: 16px;">
+                            <button class="cta-button" onclick="window.open('market_analysis_report.html', '_blank');">📊 리포트 바로가기</button>
+                            <button class="cta-button secondary">상담 예약하기</button>
+                            <button class="cta-button secondary">더 알아보기</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="avatar ai">🤖</div>
+            </div>
+        </div>
+
+        <div class="input-area">
+            <input type="text" placeholder="질문을 입력하세요...">
+            <button>전송</button>
+        </div>
+    </div>
+
+    <script>
+        // 초기 스크롤 - 최상단
+        const chatArea = document.getElementById('chatArea');
+        chatArea.scrollTop = 0;
+
+        // 버튼 클릭 이벤트
+        document.querySelectorAll('.cta-button').forEach(button => {
+            button.addEventListener('click', function() {
+                const text = this.textContent.trim();
+                if (!text.includes('리포트')) {
+                    alert('선택하신 서비스로 연결됩니다: ' + text);
+                }
+            });
+        });
+
+        // 입력창 엔터 처리
+        document.querySelector('.input-area input').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                alert('입력하신 메시지: ' + this.value);
+                this.value = '';
+            }
+        });
+
+        document.querySelector('.input-area button').addEventListener('click', function() {
+            const input = document.querySelector('.input-area input');
+            if (input.value.trim()) {
+                alert('입력하신 메시지: ' + input.value);
+                input.value = '';
+            }
+        });
+
+        // 체크박스 기본 체크 상태 유지
+        document.querySelectorAll('.checklist-item input[type="checkbox"]').forEach(checkbox => {
+            checkbox.addEventListener('change', function(e) {
+                e.stopPropagation();
+            });
+        });
+    </script>
+</body>
+</html>

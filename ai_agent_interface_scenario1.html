@@ -1,0 +1,821 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Agent 인터페이스 PoC</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 900px;
+            height: 90vh;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            text-align: center;
+            flex-shrink: 0;
+        }
+
+        .header h1 {
+            font-size: 24px;
+            margin-bottom: 5px;
+        }
+
+        .header p {
+            font-size: 13px;
+            opacity: 0.9;
+        }
+
+        .chat-area {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            background: #f8f9fa;
+        }
+
+        .message-group {
+            margin-bottom: 30px;
+            display: flex;
+            gap: 10px;
+            align-items: flex-end;
+        }
+
+        .message-group.user-group {
+            flex-direction: row;
+        }
+
+        .message-group.ai-group {
+            flex-direction: row-reverse;
+        }
+
+        .avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            flex-shrink: 0;
+            font-weight: 600;
+        }
+
+        .avatar.user {
+            background: #667eea;
+            color: white;
+        }
+
+        .avatar.ai {
+            background: #f0f0f0;
+            color: #333;
+        }
+
+        .message {
+            margin-bottom: 12px;
+            animation: slideIn 0.3s ease-out;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .user-message {
+            display: flex;
+            justify-content: flex-start;
+        }
+
+        .user-message .content {
+            background: #667eea;
+            color: white;
+            padding: 12px 16px;
+            border-radius: 12px;
+            max-width: 70%;
+            word-wrap: break-word;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+
+        .ai-message {
+            display: flex;
+            justify-content: flex-end;
+        }
+
+        .ai-message .content {
+            background: white;
+            color: #333;
+            padding: 16px;
+            border-radius: 12px;
+            max-width: 85%;
+            border-right: 4px solid #667eea;
+            font-size: 14px;
+            line-height: 1.6;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+        }
+
+        .section-title {
+            font-weight: 600;
+            color: #667eea;
+            margin: 16px 0 12px 0;
+            font-size: 15px;
+        }
+
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 12px 0;
+            font-size: 13px;
+        }
+
+        .data-table thead {
+            background: #f0f0f0;
+        }
+
+        .data-table th {
+            padding: 10px;
+            text-align: left;
+            font-weight: 600;
+            border-bottom: 2px solid #667eea;
+            color: #333;
+        }
+
+        .data-table td {
+            padding: 10px;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        .data-table tr:hover {
+            background: #f8f9fa;
+        }
+
+        .chart-container {
+            position: relative;
+            height: 250px;
+            margin: 16px 0;
+            background: white;
+            padding: 12px;
+            border-radius: 8px;
+        }
+
+        .chart-title {
+            font-size: 13px;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 8px;
+        }
+
+        .pie-chart-row {
+            display: flex;
+            gap: 20px;
+            margin: 16px 0;
+        }
+
+        .pie-chart {
+            flex: 1;
+            position: relative;
+            height: 200px;
+        }
+
+        .list-item {
+            margin: 8px 0;
+            padding-left: 20px;
+            position: relative;
+            font-size: 14px;
+            line-height: 1.6;
+            color: #333;
+        }
+
+        .list-item::before {
+            content: "•";
+            position: absolute;
+            left: 0;
+            color: #667eea;
+            font-weight: bold;
+        }
+
+        .insight-section {
+            background: #f0f4ff;
+            padding: 12px;
+            border-radius: 8px;
+            margin: 12px 0;
+            border-left: 3px solid #667eea;
+        }
+
+        .insight-title {
+            font-weight: 600;
+            color: #667eea;
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 10px;
+            margin: 16px 0;
+            flex-wrap: wrap;
+        }
+
+        .cta-button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 10px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 600;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .cta-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+
+        .cta-button.secondary {
+            background: #e8eaf6;
+            color: #667eea;
+        }
+
+        .cta-button.secondary:hover {
+            background: #dde1f0;
+        }
+
+        .company-info {
+            background: #fef5e7;
+            padding: 12px;
+            border-radius: 8px;
+            margin: 12px 0;
+            border-left: 3px solid #f39c12;
+            font-size: 14px;
+        }
+
+        .highlight {
+            background: #fff9e6;
+            padding: 2px 4px;
+            border-radius: 3px;
+            color: #d68910;
+            font-weight: 500;
+        }
+
+        .input-area {
+            border-top: 1px solid #e0e0e0;
+            padding: 16px;
+            background: white;
+            display: flex;
+            gap: 10px;
+            flex-shrink: 0;
+        }
+
+        .input-area input {
+            flex: 1;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            padding: 12px;
+            font-size: 14px;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        .input-area input:focus {
+            border-color: #667eea;
+        }
+
+        .input-area button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 14px;
+            transition: transform 0.2s;
+        }
+
+        .input-area button:hover {
+            transform: scale(1.05);
+        }
+
+        .summary-stats {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin: 12px 0;
+        }
+
+        .stat-box {
+            background: white;
+            padding: 12px;
+            border-radius: 8px;
+            border-left: 3px solid #667eea;
+        }
+
+        .stat-label {
+            font-size: 12px;
+            color: #666;
+            margin-bottom: 4px;
+        }
+
+        .stat-value {
+            font-size: 18px;
+            font-weight: 700;
+            color: #667eea;
+        }
+
+        /* 스크롤바 스타일 */
+        .chat-area::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .chat-area::-webkit-scrollbar-track {
+            background: #f1f1f1;
+        }
+
+        .chat-area::-webkit-scrollbar-thumb {
+            background: #bbb;
+            border-radius: 4px;
+        }
+
+        .chat-area::-webkit-scrollbar-thumb:hover {
+            background: #888;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🚀 AI Agent - 무역 데이터 분석</h1>
+            <p>(주)뷰티글로벌 - 화장품 수출 분석 상담</p>
+        </div>
+
+        <div class="chat-area" id="chatArea">
+            <!-- 메시지 1 -->
+            <div class="message-group user-group">
+                <div class="avatar user">U</div>
+                <div class="user-message">
+                    <div class="content">수출 관련 데이터를 분석할 수 있나요?</div>
+                </div>
+            </div>
+
+            <div class="message-group ai-group">
+                <div class="ai-message">
+                    <div class="content">
+                        <div>안녕하세요! 화장품 수출 전문 기업 <span class="highlight">(주)뷰티글로벌</span>님을 위한 맞춤형 분석 준비가 되었습니다.</div>
+                        <div class="company-info" style="margin-top: 12px;">
+                            <strong>2025년 귀사 실적 요약</strong>
+                            <div style="margin-top: 8px;">
+                                <div>• 총 수출액: <strong>1,200만 달러</strong></div>
+                                <div>• 주력 품목(기초 화장품): <strong>850만 달러</strong> (전체 대비 약 <strong>70.8%</strong>)</div>
+                            </div>
+                        </div>
+                        <div style="margin-top: 12px;">현재 한국 관세청의 최신 수출입 데이터를 바탕으로 미국/동남아 시장 현황이나 최근 3개년 수출 트렌드 분석이 가능합니다.</div>
+                        <div style="margin-top: 12px; font-weight: 500;">어떤 부분부터 상세히 살펴볼까요?</div>
+                    </div>
+                </div>
+                <div class="avatar ai">🤖</div>
+            </div>
+
+            <!-- 메시지 2 -->
+            <div class="message-group user-group">
+                <div class="avatar user">U</div>
+                <div class="user-message">
+                    <div class="content">요즘 우리나라 화장품 수출이 잘 되고 있는지 궁금해요. 데이터 좀 보여주세요.</div>
+                </div>
+            </div>
+
+            <div class="message-group ai-group">
+                <div class="ai-message">
+                    <div class="content">
+                        <div>네, 화장품 수출 현황을 분석해 드리겠습니다. 더 정확한 통계 추출을 위해 아래의 세부 조건들을 선택하거나 말씀해 주시겠어요?</div>
+                        <div class="list-item">분석 기간: 최근 1년(월별), 최근 3년(연도별), 혹은 특정 기간</div>
+                        <div class="list-item">대상 국가: 전 세계 합계, 혹은 특정 국가 (예: 미국, 베트남 등)</div>
+                        <div class="list-item">세부 품목: 기초화장품, 메이크업용, 색조 등 특정 HS Code 기반의 분류가 필요하신가요?</div>
+                    </div>
+                </div>
+                <div class="avatar ai">🤖</div>
+            </div>
+
+            <!-- 메시지 3 -->
+            <div class="message-group user-group">
+                <div class="avatar user">U</div>
+                <div class="user-message">
+                    <div class="content">미국 시장이 중요하니까 미국으로만 한정해서, 최근 3년 동안의 월별 추이를 보고 싶어요. 품목은 기초 화장품 위주로 해주세요.</div>
+                </div>
+            </div>
+
+            <div class="message-group ai-group">
+                <div class="ai-message">
+                    <div class="content">
+                        <div>알겠습니다. <span class="highlight">[대상국: 미국]</span>, <span class="highlight">[기간: 최근 36개월]</span>, <span class="highlight">[품목: 기초 화장품 (HS 3304.99)]</span> 정보를 기반으로 수출 실적 및 성장률 데이터를 추출하겠습니다.</div>
+                    </div>
+                </div>
+                <div class="avatar ai">🤖</div>
+            </div>
+
+            <!-- 메시지 4 -->
+            <div class="message-group ai-group">
+                <div class="ai-message">
+                    <div class="content">
+                        <div>(주)뷰티글로벌님의 요청에 따라 최근 3개년 대미국 기초 화장품 수출 통계를 추출했습니다.</div>
+
+                        <div class="section-title">📊 데이터 추출 결과</div>
+
+                        <div class="chart-title">2023년~2025년 월별 수출액 추이</div>
+                        <div class="chart-container">
+                            <canvas id="lineChart"></canvas>
+                        </div>
+
+                        <div class="chart-title">분기별 수출액 및 성장률 통계</div>
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>분기</th>
+                                    <th>수출액 (만 달러)</th>
+                                    <th>전년 대비 증감률 (%)</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr><td>2023 Q1</td><td>375</td><td>-2.5</td></tr>
+                                <tr><td>2023 Q2</td><td>403</td><td>3.0</td></tr>
+                                <tr><td>2023 Q3</td><td>500</td><td>25.0</td></tr>
+                                <tr><td>2023 Q4</td><td>530</td><td>30.2</td></tr>
+                                <tr><td>2024 Q1</td><td>675</td><td>80.0</td></tr>
+                                <tr><td>2024 Q2</td><td>743</td><td>84.2</td></tr>
+                                <tr><td>2024 Q3</td><td>930</td><td>86.0</td></tr>
+                                <tr><td>2024 Q4</td><td>950</td><td>79.2</td></tr>
+                                <tr><td>2025 Q1</td><td>970</td><td>43.7</td></tr>
+                                <tr><td>2025 Q2</td><td>1020</td><td>37.2</td></tr>
+                            </tbody>
+                        </table>
+
+                        <div class="chart-title">주요 수출 국가별 점유율 비교 (2024년 기준)</div>
+                        <div class="pie-chart-row">
+                            <div class="pie-chart">
+                                <canvas id="pieChart1"></canvas>
+                            </div>
+                            <div style="flex: 1; display: flex; flex-direction: column; justify-content: center; font-size: 13px; line-height: 1.8;">
+                                <div style="display: flex; align-items: center; margin-bottom: 8px;">
+                                    <div style="width: 14px; height: 14px; background: #667eea; border-radius: 3px; margin-right: 8px;"></div>
+                                    <div><strong>미국:</strong> 32%</div>
+                                </div>
+                                <div style="display: flex; align-items: center; margin-bottom: 8px;">
+                                    <div style="width: 14px; height: 14px; background: #764ba2; border-radius: 3px; margin-right: 8px;"></div>
+                                    <div><strong>중국:</strong> 28%</div>
+                                </div>
+                                <div style="display: flex; align-items: center; margin-bottom: 8px;">
+                                    <div style="width: 14px; height: 14px; background: #a084dc; border-radius: 3px; margin-right: 8px;"></div>
+                                    <div><strong>일본:</strong> 18%</div>
+                                </div>
+                                <div style="display: flex; align-items: center; margin-bottom: 8px;">
+                                    <div style="width: 14px; height: 14px; background: #d4b5f0; border-radius: 3px; margin-right: 8px;"></div>
+                                    <div><strong>베트남:</strong> 15%</div>
+                                </div>
+                                <div style="display: flex; align-items: center;">
+                                    <div style="width: 14px; height: 14px; background: #e8ddf8; border-radius: 3px; margin-right: 8px;"></div>
+                                    <div><strong>기타:</strong> 7%</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div style="margin-top: 12px; padding: 12px; background: #f0f4ff; border-radius: 8px; font-size: 14px; line-height: 1.6;">
+                            상기 그래프에서 보시는 바와 같이, <span class="highlight">2023년 3분기부터 대미국 수출액이 가파르게 상승하는 패턴</span>이 확인됩니다.
+                        </div>
+                    </div>
+                </div>
+                <div class="avatar ai">🤖</div>
+            </div>
+
+            <!-- 메시지 5 -->
+            <div class="message-group user-group">
+                <div class="avatar user">U</div>
+                <div class="user-message">
+                    <div class="content">2023년 3분기에 무슨 일이 있었죠?</div>
+                </div>
+            </div>
+
+            <div class="message-group ai-group">
+                <div class="ai-message">
+                    <div class="content">
+                        <div class="insight-section">
+                            <div class="insight-title">🔍 미국 기초화장품 수출 시장 성장 배경</div>
+                        </div>
+
+                        <div class="list-item">
+                            <strong>'탈중국' 전략과 시장 다변화 시도:</strong> 중국 현지 브랜드 성장과 한한령 등의 여파로 중국 내 K-뷰티 인기가 식으면서, 국내 화장품 기업들은 세계 최대 화장품 시장인 미국으로 눈을 돌렸습니다.
+                        </div>
+
+                        <div class="list-item">
+                            <strong>K-컬처 인기 부상:</strong> K-Pop, K-Drama의 폭발적인 인기가 아이돌 및 배우들이 사용하는 화장품에 대한 관심으로 이어졌고, TikTok 등 SNS에서 한국 스킨케어 루틴과 뷰티 팁이 확산되면서 젊은 세대를 중심으로 K-뷰티 수요가 급증했습니다.
+                        </div>
+
+                        <div class="list-item">
+                            <strong>고품질·가성비의 '인디 브랜드' 선전:</strong> 아모레퍼시픽 등 대형 브랜드 외에도 독특한 컨셉을 가진 한국 인디 브랜드들이 가격 경쟁력과 기술력을 앞세워 미국 내 중저가 시장을 공략하였으며, 특히 스킨케어, 세럼 등 기초 제품이 미국 소비자들에게 높은 평가를 받았습니다.
+                        </div>
+
+                        <div class="list-item">
+                            <strong>유통 채널 변화 및 온라인 시장 활성화:</strong> 아마존, 코스트코 등 미국 내 대형 온·오프라인 유통망 입점에 성공하며 한국 화장품 브랜드 접근성이 높아졌고, 올리브영 등의 온라인 마켓 전략이 SNS 트렌드와 맞물려 온라인 판매 성장을 가속화하였습니다.
+                        </div>
+                    </div>
+                </div>
+                <div class="avatar ai">🤖</div>
+            </div>
+
+            <!-- 메시지 6 -->
+            <div class="message-group user-group">
+                <div class="avatar user">U</div>
+                <div class="user-message">
+                    <div class="content">우리 회사가 미국에 진출하는 건 어떻게 생각해요?</div>
+                </div>
+            </div>
+
+            <div class="message-group ai-group">
+                <div class="ai-message">
+                    <div class="content">
+                        <div class="summary-stats">
+                            <div class="stat-box">
+                                <div class="stat-label">2024년 성장률</div>
+                                <div class="stat-value">63%</div>
+                            </div>
+                            <div class="stat-box">
+                                <div class="stat-label">2025년 성장률 (예상)</div>
+                                <div class="stat-value">13.5%</div>
+                            </div>
+                        </div>
+
+                        <div style="margin: 12px 0; line-height: 1.6; font-size: 14px;">
+                            <span class="highlight">'24년 연간 수출 성장률(63%) 대비 '25년에는 13.5%로 안정화</span>되며, 기초화장품은 미국 시장에서 '트렌드' 단계는 지나, 스테디셀러로 안착하는 흐름에 있다고 보여집니다.
+                        </div>
+
+                        <div style="margin: 12px 0; padding: 12px; background: #fff3cd; border-radius: 8px; border-left: 3px solid #ff9800;">
+                            <strong>⚠️ 주의사항:</strong> 최근 물류비 상승 및 미국 내 수입 규제 강화 움직임이 변수로 작용할 수 있어, 주의가 필요합니다.
+                        </div>
+
+                        <div style="margin: 12px 0; padding: 12px; background: #e8f5e9; border-radius: 8px; border-left: 3px solid #4caf50;">
+                            <strong>✅ 긍정 요인:</strong> 귀사의 '<strong>비건 기초 화장품 라인</strong>'은 이러한 트렌드에 부합하나, 구체적인 <span class="highlight">[해외 인증 / 물류/유통 채널 확장 / 이커머스 마케팅]</span>에는 전문가 조언이 필수입니다.
+                        </div>
+
+                        <div style="margin-top: 16px;">한국무역협회 1:1 전문위원 상담 서비스인 <strong>TradePro</strong>에서, 글로벌 화장품 인증 전문가 '<strong>김주연 위원</strong>'을 비롯한 전문가들을 소개해드릴까요?</div>
+
+                        <div class="button-group">
+                            <button class="cta-button" data-url="https://kita.net/tradePro/oneOnOneConsult/oneOnOneConsultList.do">TradePro 전문위원 상담 신청</button>
+                            <button class="cta-button secondary">나중에</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="avatar ai">🤖</div>
+            </div>
+
+            <!-- 메시지 7 -->
+            <div class="message-group user-group">
+                <div class="avatar user">U</div>
+                <div class="user-message">
+                    <div class="content">미국 시장은 경쟁이 너무 치열할 것 같은데, 혹시 눈여겨볼 만한 다른 유망 국가가 있나요?</div>
+                </div>
+            </div>
+
+            <div class="message-group ai-group">
+                <div class="ai-message">
+                    <div class="content">
+                        <div style="margin-bottom: 12px;">(주)뷰티글로벌님처럼 기초 화장품에 강점이 있는 기업이라면, <span class="highlight">'24년 기준 41.3억 달러의 화장품을 수입하며, 최근 빠르게 성장하고 있는 남미 시장을 추천</span>드립니다.</div>
+
+                        <div class="insight-section">
+                            <div class="insight-title">📈 KITA 국제무역통상연구원 리포트</div>
+                            <div style="font-size: 13px; margin-top: 8px;">남미 뷰티 수입시장 분석 및 현지 진출 확대 방안 요약</div>
+                        </div>
+
+                        <div class="summary-stats">
+                            <div class="stat-box">
+                                <div class="stat-label">시장 규모</div>
+                                <div class="stat-value" style="font-size: 16px;">41.3억 달러</div>
+                            </div>
+                            <div class="stat-box">
+                                <div class="stat-label">연평균 성장률</div>
+                                <div class="stat-value">4.7%</div>
+                            </div>
+                        </div>
+
+                        <div class="chart-title">남미 유망 국가 - 수출 비중</div>
+                        <div class="pie-chart">
+                            <canvas id="pieChart3" style="max-width: 300px; margin: 0 auto;"></canvas>
+                        </div>
+
+                        <div class="list-item"><strong>브라질:</strong> 수출 비중 45% - 최대 시장</div>
+                        <div class="list-item"><strong>칠레:</strong> 주요 진출 국가</div>
+                        <div class="list-item"><strong>콜롬비아:</strong> 신흥 시장</div>
+
+                        <div class="insight-section" style="margin-top: 16px;">
+                            <div class="insight-title">🎯 전략 인사이트</div>
+                            <div style="margin-top: 8px;">남미는 현재 <span class="highlight">친환경·지속가능성을 강조하는 '가치 중심' 제품이 강세</span>입니다. 귀사의 비건 기초 화장품 라인이 이 트렌드에 완벽하게 부합합니다.</div>
+                        </div>
+
+                        <div style="margin-top: 12px;">관련하여 '남미 뷰티 수입시장 분석 및 현지 진출 확대 방안' 보고서 전문을 요약해 드릴까요?</div>
+
+                        <div class="button-group">
+                            <button class="cta-button" data-url="https://www.kita.net/researchTrade/report/tradeBrief/tradeBriefDetail.do?no=2907">보고서 바로가기</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="avatar ai">🤖</div>
+            </div>
+
+            <!-- 메시지 8 -->
+            <div class="message-group user-group">
+                <div class="avatar user">U</div>
+                <div class="user-message">
+                    <div class="content">남미라니 흥미롭네요. 하지만 현지 지사도 없고 정보도 부족한데, 구체적으로 어떻게 시작해야 할지 막막해요.</div>
+                </div>
+            </div>
+
+            <div class="message-group ai-group">
+                <div class="ai-message">
+                    <div class="content">
+                        <div style="margin-bottom: 12px;">걱정 마세요! 협회에서 남미 시장 진출에 실질적인 도움을 드릴 수 있는 두 가지 서비스가 있습니다:</div>
+
+                        <div style="background: #f3f4f6; padding: 16px; border-radius: 8px; margin: 12px 0;">
+                            <div style="font-weight: 600; color: #667eea; margin-bottom: 12px;">📋 서비스 1) KITA POST 해외진출 컨설팅</div>
+                            <div style="font-size: 14px; line-height: 1.6;">
+                                남미 진출에 거점이 될 수 있는 멕시코(몬테레이) 등 협회 지부가 없는 지역의 신규 시장 조사를 1:1 맞춤형으로 지원합니다. 시장조사부터 물류/통관 자문까지 가능합니다.
+                            </div>
+                        </div>
+
+                        <div style="background: #f3f4f6; padding: 16px; border-radius: 8px; margin: 12px 0;">
+                            <div style="font-weight: 600; color: #667eea; margin-bottom: 12px;">📋 서비스 2) TradeKorea 바이어 매칭</div>
+                            <div style="font-size: 14px; line-height: 1.6;">
+                                협회가 보유한 글로벌 바이어 DB를 활용해 남미 지역의 유망 바이어를 발굴하고 매칭(GBMS)해 드립니다.
+                            </div>
+                        </div>
+
+                        <div style="margin-top: 16px; font-weight: 500;">지금 바로 KITA POST 컨설팅 신청 페이지로 연결해 드릴까요? 아니면 TradeKorea에서 남미 지역 화장품 바이어를 먼저 검색해 볼까요?</div>
+
+                        <div class="button-group">
+                            <button class="cta-button" data-url="https://www.kita.net/kitaPost/kitaPostList.do">KITA POST 컨설팅 신청</button>
+                            <button class="cta-button" data-url="https://kr.tradekorea.com/seller/buyer/buyerMatching.do">TradeKorea 바이어 검색</button>
+                            <button class="cta-button secondary">더 알아보기</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="avatar ai">🤖</div>
+            </div>
+        </div>
+
+        <div class="input-area">
+            <input type="text" placeholder="질문을 입력하세요...">
+            <button>전송</button>
+        </div>
+    </div>
+
+    <script>
+        // Line Chart - 월별 수출액 추이
+        const lineCtx = document.getElementById('lineChart').getContext('2d');
+        new Chart(lineCtx, {
+            type: 'line',
+            data: {
+                labels: ['2023-01', '2023-04', '2023-07', '2023-10', '2024-01', '2024-04', '2024-07', '2024-10', '2025-01', '2025-04'],
+                datasets: [{
+                    label: '월별 수출액 (만 달러)',
+                    data: [120, 128, 155, 175, 210, 235, 295, 315, 310, 328],
+                    borderColor: '#667eea',
+                    backgroundColor: 'rgba(102, 126, 234, 0.1)',
+                    tension: 0.4,
+                    fill: true,
+                    pointBackgroundColor: '#667eea',
+                    pointBorderColor: '#fff',
+                    pointBorderWidth: 2,
+                    pointRadius: 5,
+                    pointHoverRadius: 7
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: { font: { size: 12 } }
+                    },
+                    x: {
+                        ticks: { font: { size: 12 } }
+                    }
+                }
+            }
+        });
+
+        // Pie Chart 1 - 주요 수출 국가별 점유율
+        const pieCtx1 = document.getElementById('pieChart1').getContext('2d');
+        new Chart(pieCtx1, {
+            type: 'doughnut',
+            data: {
+                labels: ['미국', '중국', '일본', '베트남', '기타'],
+                datasets: [{
+                    data: [32, 28, 18, 15, 7],
+                    backgroundColor: ['#667eea', '#764ba2', '#a084dc', '#d4b5f0', '#e8ddf8'],
+                    borderColor: '#fff',
+                    borderWidth: 2
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: false
+                    }
+                }
+            }
+        });
+
+        // Pie Chart 2 - 남미 국가별 비중
+        const pieCtx2 = document.getElementById('pieChart3').getContext('2d');
+        new Chart(pieCtx2, {
+            type: 'doughnut',
+            data: {
+                labels: ['브라질 (45%)', '칠레 (28%)', '콜롬비아 (27%)'],
+                datasets: [{
+                    data: [45, 28, 27],
+                    backgroundColor: ['#667eea', '#764ba2', '#a084dc'],
+                    borderColor: '#fff',
+                    borderWidth: 2
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: { font: { size: 12 }, padding: 12 }
+                    }
+                }
+            }
+        });
+
+        // 초기 스크롤 - 최상단
+        const chatArea = document.getElementById('chatArea');
+        chatArea.scrollTop = 0;
+
+        // 버튼 클릭 이벤트
+        document.querySelectorAll('.cta-button').forEach(button => {
+            button.addEventListener('click', function() {
+                const url = this.getAttribute('data-url');
+                if (url) {
+                    window.open(url, '_blank');
+                } else {
+                    alert('선택하신 서비스로 연결됩니다: ' + this.textContent);
+                }
+            });
+        });
+
+        // 입력창 엔터 처리
+        document.querySelector('.input-area input').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                alert('입력하신 메시지: ' + this.value);
+                this.value = '';
+            }
+        });
+
+        document.querySelector('.input-area button').addEventListener('click', function() {
+            const input = document.querySelector('.input-area input');
+            if (input.value.trim()) {
+                alert('입력하신 메시지: ' + input.value);
+                input.value = '';
+            }
+        });
+    </script>
+</body>
+</html>
